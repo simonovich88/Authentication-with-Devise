@@ -24,7 +24,7 @@ class StoriesController < ApplicationController
   # POST /stories
   # POST /stories.json
   def create
-    @story = Story.new(story_params)
+    @story = Story.new(story_params.merge(user: current_user))
 
     respond_to do |format|
       if @story.save
@@ -40,25 +40,34 @@ class StoriesController < ApplicationController
   # PATCH/PUT /stories/1
   # PATCH/PUT /stories/1.json
   def update
-    respond_to do |format|
-      if @story.update(story_params)
-        format.html { redirect_to @story, notice: 'Story was successfully updated.' }
-        format.json { render :show, status: :ok, location: @story }
+     if  current_user.admin? || @story.user == current_user 
+      respond_to do |format|
+        if @story.update(story_params)
+          format.html { redirect_to @story, notice: 'Story was successfully updated.' }
+          format.json { render :show, status: :ok, location: @story }
+        else
+          format.html { render :edit }
+          format.json { render json: @story.errors, status: :unprocessable_entity }
+        end
+      end 
       else
-        format.html { render :edit }
-        format.json { render json: @story.errors, status: :unprocessable_entity }
+        redirect_to stories_path, notice: "you are not allowed to edit this story"
       end
     end
-  end
+  
 
   # DELETE /stories/1
   # DELETE /stories/1.json
   def destroy
+    if  current_user.admin? || @story.user == current_user 
     @story.destroy
     respond_to do |format|
       format.html { redirect_to stories_url, notice: 'Story was successfully destroyed.' }
       format.json { head :no_content }
     end
+  else
+    redirect_to stories_path, notice: "you are not allowed to destroy this story"
+  end
   end
 
   private
